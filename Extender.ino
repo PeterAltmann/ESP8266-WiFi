@@ -59,7 +59,7 @@ void setup() {
 #endif
 
   // first, connect to STA so we can get a proper local DNS server
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA); // Check https://github.com/esp8266/Arduino/issues/2371 for issues when STA mode is set before config.
   WiFi.begin(STASSID) //, STAPSK);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print('.');
