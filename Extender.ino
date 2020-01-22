@@ -1,7 +1,7 @@
 /* WiFi NAT Router part from https://github.com/martin-ger/lwip_nat_arduino
  * See also https://github.com/martin-ger/esp_wifi_repeater
  *
- * IP/MAC address retrival part from https://circuits4you.com/2018/01/31/esp8266-get-ip-mac-address-of-connected-devices/
+ * IP/MAC address retrival part from https://www.esp8266.com/viewtopic.php?f=32&t=5669&start=4
  *
  */
 
@@ -50,6 +50,7 @@ IPAddress subnet(255, 255, 255, 0);
 */
 
 void setup() {
+  pinMode(D4, OUTPUT); // prepares the blue led for status reporting
   Serial.begin(115200);
   Serial.printf("\n\nNAPT Range extender\n");
   Serial.printf("Heap on start: %d\n", ESP.getFreeHeap());
@@ -59,8 +60,8 @@ void setup() {
 #endif
 
   // first, connect to STA so we can get a proper local DNS server
-  WiFi.mode(WIFI_STA); // Check https://github.com/esp8266/Arduino/issues/2371 for issues when STA mode is set before config.
-  WiFi.begin(STASSID) //, STAPSK);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(STASSID);//, STAPSK);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print('.');
     delay(500);
@@ -75,7 +76,7 @@ void setup() {
   dhcps_set_dns(1, WiFi.dnsIP(1));
 
   //WiFi.softAPConfig(local_IP, gateway, subnet); 
-  WiFi.softAP(STASSID "extender", STAPSK);
+  WiFi.softAP(STASSID "extender");//, STAPSK);
   Serial.printf("AP: %s\n", WiFi.softAPIP().toString().c_str());
 
   Serial.printf("Heap before: %d\n", ESP.getFreeHeap());
@@ -104,27 +105,39 @@ void setup() {
 #endif
 
 void loop() {
-  delay(5000);
-  client_status();
-  //Serial.printf("Stations connected = %d\n", WiFi.softAPgetStationNum());
-  delay(5000);
-  
+  digitalWrite(D4, HIGH); // turns off blue led (only on LoLin boards)
+
+  // lists the devices connected
+  client_status(); 
+  delay(3500);
+
+  //blink the blue led when awaiting connections
+  if (WiFi.softAPgetStationNum() == 0) {
+    digitalWrite(D4, LOW);
+    delay(100);
+    digitalWrite(D4, HIGH);
+  }
+
+  //blink the blue led for a longer period when connected to other device
+  if (WiFi.softAPgetStationNum() != 0) {
+    digitalWrite(D4, LOW);
+    delay(1500);
+    digitalWrite(D4, HIGH);
+  }
 }
 
 void client_status() {
  
-  unsigned char number_client;
   struct station_info *stat_info;
   
   struct ipv4_addr *IPaddress;
   IPAddress address;
   int i=1;
   
-  number_client= wifi_softap_get_station_num();
   stat_info = wifi_softap_get_station_info();
   
   Serial.print(" Total Connected Clients are = ");
-  Serial.println(number_client);
+  Serial.println(WiFi.softAPgetStationNum());
   
     while (stat_info != NULL) {
     
